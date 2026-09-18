@@ -239,6 +239,25 @@ mod tests {
     }
 
     #[test]
+    fn antigravity_resume_plan_uses_conversation_and_mode_flags() {
+        let mut s = session("/tmp/agf-project");
+        s.agent = Agent::Antigravity;
+        s.session_id = "c96a140c-d4c0-4996-9b9b-03a0468b1fcc".to_string();
+        let plan = test_plan(&s, Some("accept-edits")).unwrap();
+        assert_eq!(plan.agent, "antigravity");
+        assert_eq!(
+            plan.args,
+            [
+                "--conversation",
+                "c96a140c-d4c0-4996-9b9b-03a0468b1fcc",
+                "--mode",
+                "accept-edits"
+            ]
+        );
+        assert_eq!(plan.cwd.as_deref(), Some("/tmp/agf-project"));
+    }
+
+    #[test]
     fn resume_plan_preserves_data_and_rejects_arbitrary_flags() {
         let mut s = session("/definitely/missing/agf-project");
         s.agent = Agent::Codex;

@@ -114,6 +114,7 @@ fn delete_agent_sessions(agent: Agent, ids: &HashSet<&str>) -> Result<HashSet<St
             io::ErrorKind::Unsupported,
             "Prime Agent deletion is disabled: use Prime Agent's /resume picker so active daemon sessions are protected",
         )),
+        Agent::Antigravity => delete_antigravity_sessions(ids),
     }
 }
 
@@ -570,6 +571,51 @@ fn delete_hermes_sessions(ids: &HashSet<&str>) -> Result<HashSet<String>, io::Er
             {
                 let _ = fs::remove_file(entry.path());
             }
+        }
+    }
+
+    Ok(deleted)
+}
+
+// ---------------------------------------------------------------------------
+// Antigravity
+// ---------------------------------------------------------------------------
+
+fn delete_antigravity_sessions(ids: &HashSet<&str>) -> Result<HashSet<String>, io::Error> {
+    let mut deleted = HashSet::new();
+    let antigravity_dir = config::antigravity_dir().map_err(io::Error::other)?;
+    let brain_dir = antigravity_dir.join("brain");
+    let conv_dir = antigravity_dir.join("conversations");
+    let db_path = antigravity_dir.join("conversation_summaries.db");
+
+    // Remove SQLite summary rows if database exists
+    if db_path.exists()
+        && let Ok(mut conn) = rusqlite::Connection::open(&db_path)
+        && let Ok(tx) = conn.transaction()
+    {
+        for id in ids {
+            let _ = tx.execute(
+                "DELETE FROM conversation_summaries WHERE conversation_id = ?1",
+                [*id],
+            );
+        }
+        let _ = tx.commit();
+    }
+
+    for id in ids {
+        let mut removed = false;
+        let session_folder = brain_dir.join(id);
+        if session_folder.is_dir() && fs::remove_dir_all(&session_folder).is_ok() {
+            removed = true;
+        }
+
+        let conv_db = conv_dir.join(format!("{id}.db"));
+        if conv_db.exists() && fs::remove_file(&conv_db).is_ok() {
+            removed = true;
+        }
+
+        if removed {
+            deleted.insert((*id).to_string());
         }
     }
 

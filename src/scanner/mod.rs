@@ -17,6 +17,7 @@ pub mod pi;
 pub mod prime_agent;
 pub mod qwen;
 pub mod yolop;
+pub mod antigravity;
 
 /// Truncate a string to `max` chars, appending "..." if truncated.
 pub(crate) fn truncate(s: &str, max: usize) -> String {
@@ -315,6 +316,7 @@ pub fn scan_agent(agent: Agent) -> Result<Vec<Session>, AgfError> {
         Agent::Hermes => hermes::scan(),
         Agent::Yolop => yolop::scan(),
         Agent::PrimeAgent => prime_agent::scan(),
+        Agent::Antigravity => antigravity::scan(),
     }
 }
 

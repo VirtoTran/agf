@@ -225,6 +225,13 @@ pub fn gemini_dir() -> Result<PathBuf, AgfError> {
     Ok(home_dir()?.join(".gemini"))
 }
 
+pub fn antigravity_dir() -> Result<PathBuf, AgfError> {
+    if let Some(path) = std::env::var_os("ANTIGRAVITY_CLI_HOME").filter(|path| !path.is_empty()) {
+        return Ok(absolute_env_path(PathBuf::from(path), &std::env::current_dir()?));
+    }
+    Ok(home_dir()?.join(".gemini").join("antigravity-cli"))
+}
+
 pub fn cursor_dir() -> Result<PathBuf, AgfError> {
     Ok(home_dir()?.join(".cursor"))
 }
@@ -565,6 +572,14 @@ pub fn data_sources(agent: Agent) -> Vec<PathBuf> {
             }
             sources
         }
+        Agent::Antigravity => {
+            let mut sources = Vec::new();
+            if let Ok(dir) = antigravity_dir() {
+                sources.extend(sqlite_sources(dir.join("conversation_summaries.db")));
+                sources.push(dir.join("brain"));
+            }
+            sources
+        }
     }
 }
 
@@ -790,6 +805,9 @@ pub fn resume_environment(agent: Agent) -> Result<BTreeMap<String, String>, Stri
                 insert("PRIME_AGENT_CODING_AGENT_DIR", prime_agent_dir())?;
             }
             insert("PRIME_AGENT_SESSION_DIR", prime_sessions_dir())?;
+        }
+        Agent::Antigravity if configured("ANTIGRAVITY_CLI_HOME") => {
+            insert("ANTIGRAVITY_CLI_HOME", antigravity_dir())?;
         }
         _ => {}
     }
